@@ -21,11 +21,11 @@ struct slist{
     // Puntero a la cabeza de la lista
     struct NodoTupla *head;
 
-    // Mutex para que las operaciones sean atómicas
-    pthread_mutex_t mutex_lista;
-
     // Tamaño de la lista
     int size;
+    
+    // Mutex para que las operaciones sean atómicas
+    pthread_mutex_t mutex_lista;
 };
 
 struct slist almacen = { NULL, 0, PTHREAD_MUTEX_INITIALIZER };
@@ -43,6 +43,25 @@ struct NodoTupla* find_node(const char *key) {
     }
 
     return NULL; // El nodo buscado no existe
+}
+
+// Función auxiliar para insertar un nodo en la lista
+int insert_node (struct NodoTupla* nodo){ // Rey
+    // 1. Se comprueba que el nodo sea valido
+    if (nodo == NULL) {
+        return -1;
+    }
+    // Caso 1: Lista vacia
+    if (almacen.size == 0){
+        almacen.head = nodo;
+        almacen.size +=1;
+        return 0;
+    }
+    // Caso 2: Lista no vacia (insertamos al principio por eficiencia)
+    nodo->next = almacen.head;
+    almacen.head = nodo;
+    almacen.size +=1;
+    return 0; // Se puede refactorizar pero de momento se deja asi por legibilidad
 }
 
 // -----------------------------
@@ -87,7 +106,7 @@ int set_value(char *key, char *value1, int N_value2, float *V_value2, struct Paq
     pthread_mutex_lock (&almacen.mutex_lista);
 
     // 4. Se comprueba que no exsita la clave
-    if (exist(key) == 0){
+    if (find_node(key) != NULL){
         pthread_mutex_unlock (&almacen.mutex_lista);
         return -1;
     }
@@ -114,24 +133,6 @@ int set_value(char *key, char *value1, int N_value2, float *V_value2, struct Paq
     pthread_mutex_unlock (&almacen.mutex_lista);
     return 0;
 
-}
-
-int insert_node (struct NodoTupla* nodo){ // Rey
-    // 1. Se comprueba que el nodo sea valido
-    if (nodo == NULL) {
-        return -1;
-    }
-    // Caso 1: Lista vacia
-    if (almacen.size == 0){
-        almacen.head = nodo;
-        almacen.size +=1;
-        return 0;
-    }
-    // Caso 2: Lista no vacia (insertamos al principio por eficiencia)
-    nodo->next = almacen.head;
-    almacen.head = nodo;
-    almacen.size +=1;
-    return 0; // Se puede refactorizar pero de momento se deja asi por legibilidad
 }
 
 int get_value(char *key, char *value1, int *N_value2, float *V_value2, struct Paquete *value3) { // Esclavo
@@ -170,6 +171,7 @@ int modify_value(char *key, char *value1, int N_value2, float *V_value2, struct 
     // 4. Se busca el nodo a modificar
     struct NodoTupla* nodo = find_node(key); // IMPORTANTE PUNTERO para no hacer una copia local del nodo
     if (nodo == NULL) {
+        pthread_mutex_unlock(&almacen.mutex_lista);
         return -1;
     }
 
@@ -210,12 +212,15 @@ int delete_key(char *key) { // Esclavo
 
     // En caso de que la clave no exista se devuelve -1
     pthread_mutex_unlock(&almacen.mutex_lista);
-    return 1;
+    return -1;
 }
 
 int exist(char *key) { // Rey
+    pthread_mutex_lock(&almacen.mutex_lista);
     if (find_node (key)){
-       return 0; // Retorna 0 si existe
+        pthread_mutex_unlock(&almacen.mutex_lista);
+       return 1; // Retorna 1 si existe
     }
-    return -1; // Retorna 1 si no existe
+    pthread_mutex_unlock(&almacen.mutex_lista);
+    return 0; // Retorna 0 si no existe
 }
