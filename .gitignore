@@ -1,0 +1,6 @@
+*.o
+*.so
+app_cliente
+servidor
+proxy-mq
+app_cliente
