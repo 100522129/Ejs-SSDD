@@ -131,7 +131,7 @@ void* trabajador (void* arg){ // Me llega un puntero void
         sem_wait(&mis_datos->semaforo);
 
         // 4.2 Hago la funcion que me toque
-        printf("Hilo %d trabajando...\n", id);
+        printf("Hilo %ld trabajando...\n", mis_datos->thread_id);
         if (ejecutar_funcion(mis_datos) == -1){
             // Mirar a ver que hacer cuando hay error
         }
@@ -151,7 +151,7 @@ int main(){
 
     // 2. Configuro los atributos de la cola
     attr.mq_flags = 0; // Comportamiento normal (bloqueante)
-    attr.mq_maxmsg = 30; // Limite de mensajes en la cola a la vez
+    attr.mq_maxmsg = 10; // Limite de mensajes en la cola a la vez
     attr.mq_msgsize = sizeof(struct peticion); // El tamannio de cada mensaje es exactamente el de cada peticion
     attr.mq_curmsgs = 0;
 

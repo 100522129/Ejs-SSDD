@@ -29,5 +29,15 @@ app_cliente_mq: app-cliente.c libproxyclaves.so
 
 # ── LIMPIEZA ─────────────────────────────────
 clean:
-	rm -f *.so *.o servidor app_cliente_local app_cliente
+	rm -f *.so *.o servidor app_cliente_local app_cliente_mq
 	rm -f /dev/mqueue/*
+
+# ── Lanzar ejecutables ─────────────────────────────────
+run_cliente_local:
+	LD_LIBRARY_PATH=. ./app_cliente_local
+
+run_servidor:
+	LD_LIBRARY_PATH=. ./servidor
+
+run_cliente_mq:
+	LD_LIBRARY_PATH=. ./app_cliente_mq
