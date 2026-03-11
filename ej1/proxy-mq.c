@@ -21,18 +21,22 @@ int send_recv(struct peticion *req, struct respuesta *res) {
     char client_queue[256];
     
     // !!!!! Ponemos atributos? (Supuestamente esencial para que mq_receive no falle)
-    // struct mq_attr attr;
-    // attr.mq_flags = 0;
-    // attr.mq_maxmsg = 10;
-    // attr.mq_msgsize = sizeof(struct respuesta);
-    // attr.mq_curmsgs = 0;
+    /*
+    He activado los atributos y se los paso al crear la cola porque sino falla porque linux da un tamannio
+    inicial que no nos vale para mandar nuestras structs 
+    */
+    struct mq_attr attr;
+    attr.mq_flags = 0;
+    attr.mq_maxmsg = 10;
+    attr.mq_msgsize = sizeof(struct respuesta);
+    attr.mq_curmsgs = 0;
 
     // Inventamos un nombre de cola para el cliente, único e identificativo
     sprintf(client_queue, "/CLIENTE_%d", getpid());
     strcpy(req->q_name, client_queue); // Le decimos al servidor dónde contestar
 
     // Abrimos las colas
-    q_client = mq_open(client_queue, O_CREAT | O_RDONLY, 0700, NULL);
+    q_client = mq_open(client_queue, O_CREAT | O_RDONLY, 0700, &attr);
     if (q_client == -1) {
         perror("Error creando la cola del cliente en el proxy");
         return -1;

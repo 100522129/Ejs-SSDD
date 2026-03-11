@@ -43,7 +43,7 @@ int ejecutar_funcion (struct hilo_trabajador* datos){
     // 3. Lanzo la funcion del .so correspondiente a cada peticion 
     switch (peticion.op) {
         case OP_INIT: 
-            
+            respuesta->resultado = destroy();
             break;
 
         case OP_SET:
@@ -135,7 +135,7 @@ void* trabajador (void* arg){ // Me llega un puntero void
         if (ejecutar_funcion(mis_datos) == -1){
             // Mirar a ver que hacer cuando hay error
         }
-
+        printf("Hilo %ld ha finalizado su trabajo\n", mis_datos->thread_id);
         // 4.3 Notifico al hilo jefe que el hilo queda libre
         pthread_mutex_lock(&mis_datos->mutex);
         mis_datos->ocupado = 0;

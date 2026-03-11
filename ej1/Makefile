@@ -37,6 +37,7 @@ run_cliente_local:
 	LD_LIBRARY_PATH=. ./app_cliente_local
 
 run_servidor:
+	rm -f /dev/mqueue/*
 	LD_LIBRARY_PATH=. ./servidor
 
 run_cliente_mq:
