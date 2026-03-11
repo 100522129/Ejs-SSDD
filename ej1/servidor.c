@@ -36,10 +36,10 @@ int ejecutar_funcion (struct hilo_trabajador* datos){
     // 2. Creo la respuesta que le mandare al proxy
     struct respuesta* respuesta = malloc(sizeof(struct respuesta));
     if (respuesta == NULL){
-        printf("Hola, soy el hilo [%d] y no he podido generar la respuesta\n", datos->thread_id);
+        printf("Hola, soy el hilo [%ld] y no he podido generar la respuesta\n", datos->thread_id);
         return -1;
     }
-
+    int codigo_respuesta;
     // 3. Lanzo la funcion del .so correspondiente a cada peticion 
     switch (peticion.op) {
         case OP_INIT: 
@@ -47,7 +47,7 @@ int ejecutar_funcion (struct hilo_trabajador* datos){
             break;
 
         case OP_SET:
-            int codigo_respuesta = set_value(peticion.key,
+            codigo_respuesta = set_value(peticion.key,
                 peticion.value1, 
                 peticion.N_value2, 
                 peticion.V_value2, 
@@ -58,7 +58,7 @@ int ejecutar_funcion (struct hilo_trabajador* datos){
             break;
 
         case OP_GET:
-            int codigo_respuesta = get_value(
+            codigo_respuesta = get_value(
                 peticion.key, 
                 respuesta->value1, 
                 &respuesta->N_value2, 
@@ -69,7 +69,7 @@ int ejecutar_funcion (struct hilo_trabajador* datos){
             break;
 
         case OP_MODIFY:
-            int codigo_respuesta = modify_value(peticion.key, 
+            codigo_respuesta = modify_value(peticion.key, 
                 peticion.value1, 
                 peticion.N_value2, 
                 peticion.V_value2, 
@@ -78,12 +78,12 @@ int ejecutar_funcion (struct hilo_trabajador* datos){
             break;
 
         case OP_DELETE:
-            int codigo_respuesta = delete_key(peticion.key);
+            codigo_respuesta = delete_key(peticion.key);
             respuesta->resultado = codigo_respuesta;
             break;
 
         case OP_EXIST:
-            int codigo_respuesta = exist(peticion.key);
+            codigo_respuesta = exist(peticion.key);
             respuesta->resultado = codigo_respuesta;
             break;
     }
@@ -91,7 +91,7 @@ int ejecutar_funcion (struct hilo_trabajador* datos){
     // 4. Abro la cola del proxy 
     mqd_t q_proxy = mq_open(peticion.q_name, O_WRONLY);
     if (q_proxy == -1){
-        printf("Soy el Hilo [%d] y no he podido abrir la cola del proxy\n", datos->thread_id);
+        printf("Soy el Hilo [%ld] y no he podido abrir la cola del proxy\n", datos->thread_id);
         mq_close(q_proxy);
         free(respuesta);
         return -1;
@@ -99,7 +99,7 @@ int ejecutar_funcion (struct hilo_trabajador* datos){
 
     // 5. Le mando la respuesta al proxy via cola
     if (mq_send(q_proxy, (char*)respuesta, sizeof(*respuesta), 0) == -1){
-        printf("Soy el Hilo [%d] y no he podido escribir en la cola del proxy\n", datos->thread_id);
+        printf("Soy el Hilo [%ld] y no he podido escribir en la cola del proxy\n", datos->thread_id);
         mq_close(q_proxy);
         free(respuesta);
         return -1;
@@ -200,7 +200,7 @@ int main(){
             exit(-1);
         }
     }
-    printf("[JEFE] Pool de %d hilos creado e inicializado.\n", NUM_THREADS);
+    printf("[JEFE] Pool de %ld hilos creado e inicializado.\n", NUM_THREADS);
 
     // ------------------------------
     // Empieza la logica del servidor 
