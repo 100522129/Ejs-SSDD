@@ -9,7 +9,7 @@
 #include "claves.h"
 #include "mensajes.h"
 
-#define SERVER_QUEUE "/SERVIDOR" // !!!!!! Poner el mismo nombre que pablo
+#define SERVER_QUEUE "/SERVIDOR" // Nombre de la cola del servidor
 
 // Función auxiliar:
 // Envía la petición al servidor, espera la respuesta y la devuelve
@@ -20,7 +20,6 @@ int send_recv(struct peticion *req, struct respuesta *res) {
     mqd_t q_server, q_client;
     char client_queue[256];
     
-    // !!!!! Ponemos atributos? (Supuestamente esencial para que mq_receive no falle)
     /*
     He activado los atributos y se los paso al crear la cola porque sino falla porque linux da un tamannio
     inicial que no nos vale para mandar nuestras structs 
@@ -39,7 +38,7 @@ int send_recv(struct peticion *req, struct respuesta *res) {
     q_client = mq_open(client_queue, O_CREAT | O_RDONLY, 0700, &attr);
     if (q_client == -1) {
         perror("Error creando la cola del cliente en el proxy");
-        return -1;
+        return -2;
     }
     
     q_server = mq_open("/SERVIDOR", O_WRONLY);
@@ -48,7 +47,7 @@ int send_recv(struct peticion *req, struct respuesta *res) {
         perror("Error abriendo la cola del servidor en proxy");
         mq_close(q_client);
         mq_unlink(client_queue);
-        return -1;
+        return -2;
     }
 
     // 2. Enviar y recibir
@@ -58,7 +57,7 @@ int send_recv(struct peticion *req, struct respuesta *res) {
         mq_close(q_client);
         mq_unlink(client_queue);
 
-        return -1;
+        return -2;
     }
     
     if (mq_receive(q_client, (char *)res, sizeof(struct respuesta), NULL) == -1) {
@@ -67,7 +66,7 @@ int send_recv(struct peticion *req, struct respuesta *res) {
         mq_close(q_client);
         mq_unlink(client_queue);
 
-        return -1;
+        return -2;
     }
 
 
@@ -88,7 +87,7 @@ int destroy(void) {
     req.op = OP_INIT;
 
     // 2. Enviar y recibir
-    if (send_recv(&req, &res) == -1) return -1;
+    if (send_recv(&req, &res) == -2) return -2;
 
     return res.resultado;
 }
@@ -101,6 +100,10 @@ int set_value(char *key, char *value1, int N_value2, float *V_value2, struct Paq
     // 1. Empaquetar la petición
     req.op = OP_SET;
 
+    // Comprobar de los valores de entrada
+    if (N_value2 < 1 || N_value2 > 32) return -1;
+    if (strnlen(key, 256) == 256 || (value1 != NULL && strnlen(value1, 256) == 256)) return -1;
+    
     strcpy(req.key, key);
     strcpy(req.value1, value1);
     req.N_value2 = N_value2;
@@ -108,7 +111,7 @@ int set_value(char *key, char *value1, int N_value2, float *V_value2, struct Paq
     req.value3 = value3;
 
     // 2. Enviar y recibir
-    if (send_recv(&req, &res) == -1) return -1;
+    if (send_recv(&req, &res) == -2) return -2;
 
     return res.resultado;
 }
@@ -122,7 +125,7 @@ int get_value(char *key, char *value1, int *N_value2, float *V_value2, struct Pa
     strcpy(req.key, key);
     
     // 2. Enviar y recibir
-    if (send_recv(&req, &res) == -1) return -1;
+    if (send_recv(&req, &res) == -2) return -2;
 
     // 3. Desempaquetar la respuesta (si la clave existe)
     if (res.resultado == 0) {
@@ -144,6 +147,10 @@ int modify_value(char *key, char *value1, int N_value2, float *V_value2, struct 
     // 1. Empaquetar la petición
     req.op = OP_MODIFY;
 
+    // Comprobar los valores de entrada
+    if (N_value2 < 1 || N_value2 > 32) return -1;
+    if (strnlen(key, 256) == 256 || (value1 != NULL && strnlen(value1, 256) == 256)) return -1;
+    
     strcpy(req.key, key);
     strcpy(req.value1, value1);
     req.N_value2 = N_value2;
@@ -151,7 +158,7 @@ int modify_value(char *key, char *value1, int N_value2, float *V_value2, struct 
     req.value3 = value3;
     
     // 2. Enviar y recibir
-    if (send_recv(&req, &res) == -1) return -1;
+    if (send_recv(&req, &res) == -2) return -2;
 
     return res.resultado;
 }
@@ -165,7 +172,7 @@ int delete_key(char *key) {
     strcpy(req.key, key);
 
     // 2. Enviar y recibir
-    if (send_recv(&req, &res) == -1) return -1;
+    if (send_recv(&req, &res) == -2) return -2;
 
     return res.resultado;
 }
@@ -179,7 +186,7 @@ int exist(char *key) {
     strcpy(req.key, key);
 
     // 2. Enviar y recibir
-    if (send_recv(&req, &res) == -1) return -1;
+    if (send_recv(&req, &res) == -2) return -2;
 
     return res.resultado;
 }

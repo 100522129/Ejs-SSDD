@@ -8,23 +8,7 @@
 #include <unistd.h>
 #include <semaphore.h>
 #include "claves.h"
-
-/* Codigos de Operacion */
-#define OP_INIT   0
-#define OP_SET    1
-#define OP_GET    2
-#define OP_MODIFY 3
-#define OP_DELETE 4
-#define OP_EXIST  5
-
-struct hilo_trabajador { // Estructura necesaria para crear el pool de hilos
-    pthread_t thread_id;
-    int ocupado;
-    struct peticion tarea;
-    int tareas_ejecutadas;
-    sem_t semaforo; // Empieza en 0
-    pthread_mutex_t mutex; // Para que no haya condicones de carrera cuando se accede a la variable ocupado
-};
+#include "pool.h"
 
 struct hilo_trabajador *pool = NULL; // Puntero global para no tener que crear una estructura nueva que necesitaria el hilo para pasarle su id y su pool
 
@@ -133,7 +117,7 @@ void* trabajador (void* arg){ // Me llega un puntero void
         // 4.2 Hago la funcion que me toque
         printf("Hilo %ld trabajando...\n", mis_datos->thread_id);
         if (ejecutar_funcion(mis_datos) == -1){
-            // Mirar a ver que hacer cuando hay error
+            fprintf(stderr, "[!] Hilo %ld falló al contestar al cliente. Retomando servicio...\n", mis_datos->thread_id);
         }
         printf("Hilo %ld ha finalizado su trabajo\n", mis_datos->thread_id);
         // 4.3 Notifico al hilo jefe que el hilo queda libre
