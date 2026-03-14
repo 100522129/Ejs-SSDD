@@ -27,7 +27,7 @@ struct slist{
     // Mutex para que las operaciones sean atómicas
     pthread_mutex_t mutex_lista;
 };
-
+// Inicializamos el almacen
 struct slist almacen = { NULL, 0, PTHREAD_MUTEX_INITIALIZER };
 
 // Función auxiliar para buscar un nodo (dada la clave)
@@ -46,7 +46,7 @@ struct NodoTupla* find_node(const char *key) {
 }
 
 // Función auxiliar para insertar un nodo en la lista
-int insert_node (struct NodoTupla* nodo){ // Rey
+int insert_node (struct NodoTupla* nodo){
     // 1. Se comprueba que el nodo sea valido
     if (nodo == NULL) {
         return -1;
@@ -64,13 +64,7 @@ int insert_node (struct NodoTupla* nodo){ // Rey
     return 0; // Se puede refactorizar pero de momento se deja asi por legibilidad
 }
 
-// -----------------------------
-//  IMPLEMENTACIÓN DE FUNCIONES
-    // Esclavo = Pablo Pino 
-    // Rey = Pablo Perez 👑
-// -----------------------------
-
-int destroy(void) { // Esclavo
+int destroy(void) {
     pthread_mutex_lock(&almacen.mutex_lista);
 
     struct NodoTupla *actual = almacen.head;
@@ -89,9 +83,9 @@ int destroy(void) { // Esclavo
 
     return 0;
 }
-// Falta ver que hacemos cuadno hay un error al insertar un nodo
-int set_value(char *key, char *value1, int N_value2, float *V_value2, struct Paquete value3) { // Rey
 
+int set_value(char *key, char *value1, int N_value2, float *V_value2, struct Paquete value3) {
+    
     // 1. Se comprueba que el valor N_value2 este dentro del rango
     if (N_value2 < 1 || N_value2 > 32) {
         return -1;
@@ -135,65 +129,88 @@ int set_value(char *key, char *value1, int N_value2, float *V_value2, struct Paq
 
 }
 
-int get_value(char *key, char *value1, int *N_value2, float *V_value2, struct Paquete *value3) { // Esclavo
+int get_value(char *key, char *value1, int *N_value2, float *V_value2, struct Paquete *value3) {
+    // 1. Se comprueba que la key no sea NULL
+    if (key == NULL){
+        return -1;
+    }
+
+    // 2. Se bloquea el mutex
     pthread_mutex_lock(&almacen.mutex_lista);
 
+    // 3. Se busca el nodo correspondiente a la clave en la estructura de datos
     struct NodoTupla *node = find_node(key);
 
+    // 4. Si el nodo no existe, se libera el mutex y se retorna error
     if (node == NULL) {
         pthread_mutex_unlock(&almacen.mutex_lista);
         return -1; // No existe dicho elemento
     }
 
+    // 5. Se copia la cadena de caracteres al buffer de salida
     strcpy(value1, node->value1);
+
+    // 7. Se copian uno a uno los elementos del array de floats
     *N_value2 = node->N_value2;
     for (int i = 0; i < node->N_value2; i++) {
         V_value2[i] = node->V_value2[i];
     }
+
+    // 8. Se copia el contenido de la estructura Paquete por valor
     *value3 = node->value3;
 
+    // 9. Se libera el mutex para otros hilos
     pthread_mutex_unlock(&almacen.mutex_lista);
+
     return 0;
 }
 
-int modify_value(char *key, char *value1, int N_value2, float *V_value2, struct Paquete value3) { // Rey
-    // 1. Se comprueba que las cadenas de chars acaban en \0
+int modify_value(char *key, char *value1, int N_value2, float *V_value2, struct Paquete value3) {
+    // 1. Se comprueba que los valores no sean nulos
+    if (key == NULL || value1 == NULL || V_value2 == NULL){
+        return -1;
+    }
+
+    // 2. Se comprueba que las cadenas de chars acaban en \0
     if (strnlen(key, 256) == 256 || strnlen(value1, 256) == 256) {
         return -1;
     }
-    // 2. Se comprueba que el valor N_value2 este dentro del rango
+    // 3. Se comprueba que el valor N_value2 este dentro del rango
     if (N_value2 < 1 || N_value2 > 32) {
         return -1;
     }
-    // 3. Bloqueo de la lista
+    // 4. Bloqueo de la lista
     pthread_mutex_lock(&almacen.mutex_lista);
 
-    // 4. Se busca el nodo a modificar
+    // 5. Se busca el nodo a modificar
     struct NodoTupla* nodo = find_node(key); // IMPORTANTE PUNTERO para no hacer una copia local del nodo
     if (nodo == NULL) {
         pthread_mutex_unlock(&almacen.mutex_lista);
         return -1;
     }
 
-    // 5. Se modifican los valores del nodo
+    // 6. Se modifican los valores del nodo
     strcpy (nodo->key, key);
     strcpy (nodo->value1, value1);
     nodo->N_value2 = N_value2;
     memcpy (nodo->V_value2, V_value2, N_value2 * sizeof(float));
     nodo->value3 = value3;
 
-    // 6. Liberar y salir
+    // 7. Liberar y salir
     pthread_mutex_unlock(&almacen.mutex_lista);
     return 0;
 }
 
-int delete_key(char *key) { // Esclavo
+int delete_key(char *key) {
+    // 1. Se bloquea el mutex
     pthread_mutex_lock(&almacen.mutex_lista);
 
+    // 2. Se inicializan los punteros para recorrer la lista
     struct NodoTupla *actual = almacen.head;
     struct NodoTupla *prev = NULL;
 
     while (actual != NULL) {
+        // 3. Se compara la clave del nodo actual con la clave a borrar
         if (strcmp(actual->key, key) == 0) {
             if (prev == NULL) {
                 almacen.head = actual->next;
@@ -216,11 +233,16 @@ int delete_key(char *key) { // Esclavo
 }
 
 int exist(char *key) { // Rey
+    // 1. Se bloquea el mutex
     pthread_mutex_lock(&almacen.mutex_lista);
+
+    // 2. Si se encuentra el nodo se retorna 1
     if (find_node (key)){
         pthread_mutex_unlock(&almacen.mutex_lista);
-       return 1; // Retorna 1 si existe
+       return 1;
     }
+
+    // 3. En caso de no encontrarse el nodo, se retorna 0
     pthread_mutex_unlock(&almacen.mutex_lista);
-    return 0; // Retorna 0 si no existe
+    return 0;
 }

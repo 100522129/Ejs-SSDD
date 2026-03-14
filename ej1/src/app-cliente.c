@@ -5,7 +5,7 @@
 int main() {
     printf("=== INICIANDO PRUEBAS app-cliente.c ===\n");
 
-    // Primero limpiamos el almacén
+    // Limpiamos el almacén
     destroy();
 
     // --------------------------------------------------------------------------

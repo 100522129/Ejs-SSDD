@@ -20,10 +20,7 @@ int send_recv(struct peticion *req, struct respuesta *res) {
     mqd_t q_server, q_client;
     char client_queue[256];
     
-    /*
-    He activado los atributos y se los paso al crear la cola porque sino falla porque linux da un tamannio
-    inicial que no nos vale para mandar nuestras structs 
-    */
+    // Activamos los atributos para que no haya problemas con las colas
     struct mq_attr attr;
     attr.mq_flags = 0;
     attr.mq_maxmsg = 10;
