@@ -1,25 +1,36 @@
 #!/bin/bash
+# Uso: ./test_concurrencia.sh
+# El servidor debe estar corriendo antes:
+#   LD_LIBRARY_PATH=./build ./build/servidor_mq
 
-# 1. Indicamos que las bibliotecas dinámicas están en la carpeta build
-export LD_LIBRARY_PATH=./build:$LD_LIBRARY_PATH
+N=10
+export LD_LIBRARY_PATH="$PWD/build"
+EXEC="$PWD/build/app_cliente_mq"
+FALLOS=0
+PIDS=()
+LOGS=()
 
-echo "Iniciando servidor..."
-# 2. Ejecutamos el servidor accediendo a la carpeta build
-# Guardamos el log también en build para mantener la raíz limpia
-./build/servidor_mq > build/servidor.log 2>&1 &
-PID_SERVER=$!
+echo "Lanzando $N clientes..."
 
-sleep 1 
-
-echo "Lanzando clientes de estrés concurrentes..."
-# 3. Lanzamos los clientes accediendo a la carpeta build
-for i in {1..2}; do
-    ./build/app_cliente_mq &
+for i in $(seq 1 $N); do
+    LOG="/tmp/cli_${i}_$$.log"
+    LOGS+=("$LOG")
+    $EXEC > "$LOG" 2>&1 &
+    PIDS+=($!)
+    sleep 0.1   # 100ms entre cada cliente para no saturar la cola
 done
 
-echo "Esperando a que los clientes terminen..."
-wait 
+for i in "${!PIDS[@]}"; do
+    wait ${PIDS[$i]}
+    if [ $? -ne 0 ]; then
+        echo "[FAIL] Cliente $((i+1)) — $(grep RESULTADO ${LOGS[$i]})"
+        FALLOS=$((FALLOS+1))
+    else
+        echo "[ OK ] Cliente $((i+1)) — $(grep RESULTADO ${LOGS[$i]})"
+    fi
+done
 
-echo "Pruebas concurrentes finalizadas. Apagando servidor..."
-kill $PID_SERVER
-echo "Servidor apagado."
+rm -f "${LOGS[@]}"
+echo ""
+[ $FALLOS -eq 0 ] && echo "TODOS OK ($N/$N)" || echo "FALLOS: $FALLOS/$N"
+exit $FALLOS
