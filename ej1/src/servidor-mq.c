@@ -9,9 +9,9 @@
 #include <semaphore.h>
 #include "claves.h"
 #include "pool.h"
+#include <signal.h>
 
 struct hilo_trabajador *pool = NULL; // Puntero global para no tener que crear una estructura nueva que necesitaria el hilo para pasarle su id y su pool
-
 
 int ejecutar_funcion (struct hilo_trabajador* datos){
     // 1. Se crea una copia local de la peticion
@@ -98,7 +98,6 @@ int ejecutar_funcion (struct hilo_trabajador* datos){
     
 }
 
-
 void* trabajador (void* arg){ // Me llega un puntero void
     // 1. Se transforma puntero void* -> int*
     int* puntero_id = (int*)arg;
@@ -162,7 +161,7 @@ int main(){
     int threads_IDs [NUM_THREADS];
 
     // 6. Se inicializa el pool de hilos
-    for (size_t i = 0; i < NUM_THREADS; i++){
+    for (int i = 0; i < NUM_THREADS; i++){
         // 6.1 Se inicializa el estado del hilo
         pool[i].ocupado = 0; // Inicialmente esta libre
 
@@ -189,7 +188,7 @@ int main(){
     // ------------------------------
     // Empieza la logica del servidor 
     // ------------------------------
-    
+    long tareas =0;
     while (1){
         // 1. Se lee de la cola POSIX y se almacena el mensaje en la variable peticion_actual
         if (mq_receive(q_server, (char*)&peticion_actual, sizeof(struct peticion), NULL) == -1){
@@ -207,6 +206,7 @@ int main(){
                     pthread_mutex_unlock(&pool[i].mutex);
                     sem_post(&pool[i].semaforo);
                     asignado = 1;
+                    tareas +=1;
                     break;
                 }
                 pthread_mutex_unlock(&pool[i].mutex);
