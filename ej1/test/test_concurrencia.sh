@@ -29,9 +29,10 @@ echo ""
 for i in "${!PIDS[@]}"; do
     NUM=$((i + 1))
     wait ${PIDS[$i]}
+    EXIT_CODE=$? # Línea nueva
     RESULTADO=$(grep "RESULTADO" "${LOGS[$i]}" | tail -1)
 
-    if [ $? -ne 0 ]; then
+    if [ $EXIT_CODE -ne 0 ]; then  # <--- COMPROBAMOS LA VARIABLE GUARDADA
         echo "  [FAIL] Cliente $NUM — $RESULTADO"
         FALLOS=$((FALLOS + 1))
     else
