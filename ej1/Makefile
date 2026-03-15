@@ -24,13 +24,13 @@ libproxyclaves.so: src/proxy-mq.c include/mensajes.h include/claves.h
 servidor_mq: src/servidor-mq.c include/pool.h build/libclaves.so
 	$(CC) -Iinclude -o build/servidor_mq src/servidor-mq.c -Lbuild -lclaves -lrt -lpthread
 
-# Cliente Parte A → sin colas
-app_cliente_local: src/app-cliente.c build/libclaves.so
-	$(CC) -Iinclude -o build/app_cliente_local src/app-cliente.c -Lbuild -lclaves -lpthread
+# Cliente Parte A → sin colas y solo 1 cliente
+app_cliente_local: test/app-cliente-1.c build/libclaves.so
+	$(CC) -Iinclude -o build/app_cliente_local test/app-cliente-1.c -Lbuild -lclaves -lpthread
 
-# Cliente Parte B → con colas
-app_cliente_mq: src/app-cliente.c build/libproxyclaves.so
-	$(CC) -Iinclude -o build/app_cliente_mq src/app-cliente.c -Lbuild -lproxyclaves -lrt
+# Cliente Parte B → con colas y varios clientes
+app_cliente_mq: test/app-cliente-2.c build/libproxyclaves.so
+	$(CC) -Iinclude -o build/app_cliente_mq test/app-cliente-2.c -Lbuild -lproxyclaves -lrt
 
 # ── LIMPIEZA ─────────────────────────────────
 clean:
