@@ -114,6 +114,10 @@ int set_value(char *key, char *value1, int N_value2, float *V_value2, struct Paq
 }
 
 int get_value(char *key, char *value1, int *N_value2, float *V_value2, struct Paquete *value3) {
+    // Vital para que no falle si se pasa un NULL
+    if (key == NULL) {
+        return -1;
+    }
     struct peticion req;
     struct respuesta res;
 
@@ -161,6 +165,10 @@ int modify_value(char *key, char *value1, int N_value2, float *V_value2, struct 
 }
 
 int delete_key(char *key) {
+    // Vital para que no falle si se pasa un NULL
+    if (key == NULL) {
+        return -1;
+    }
     struct peticion req;
     struct respuesta res;
 
@@ -175,6 +183,11 @@ int delete_key(char *key) {
 }
 
 int exist(char *key) {
+    // Vital para que no falle si se pasa un NULL
+    if (key == NULL) {
+        return -1;
+    }
+    
     struct peticion req;
     struct respuesta res;
 
