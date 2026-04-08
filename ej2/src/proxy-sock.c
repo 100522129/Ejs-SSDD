@@ -8,25 +8,111 @@
 #include <netdb.h>       // getaddrinfo (para resolver nombres de dominio)
 #include "claves.h"
 #include "mensajes.h"
-
+#include "cJSON.h"
 
 /* Notas Importantes:
     - El servidor escucha siempre por el mismo puerto
     - Ya no se envian structs, ahora se envian jsons
 */
 
+char* crear_json (struct peticion req){
+    // Comprobacion basica
+    if (req.op < 0 || req.op > 5){
+        return NULL;
+    }
+
+    // 1. Creo el JSON
+    cJSON *obj = cJSON_CreateObject();
+
+    if (req.op == 0){ // EL tipo de operacion es destroy
+        // Relleno el JSON
+        cJSON_AddNumberToObject(obj, "op", OP_INIT);
+    }
+
+    else if (req.op == 1){ // La operacion es set_value
+        // Relleno el JSON
+        cJSON_AddNumberToObject(obj, "op", OP_SET);
+        cJSON_AddStringToObject(obj, "key", req.key);
+        cJSON_AddStringToObject(obj, "value1", req.value1);
+        cJSON_AddNumberToObject(obj, "nvalue2", req.N_value2);
+
+        // Meto el array de floats V_value2
+        cJSON *array = cJSON_CreateArray();
+        for (int i = 0; i < req.N_value2; i++){
+            cJSON_AddItemToArray(array, cJSON_CreateNumber(req.V_value2[i]));
+        }
+        cJSON_AddItemToObject(obj, "vvalue2", array);
+
+        // Meto el value3
+        cJSON *paquete = cJSON_CreateObject();
+        cJSON_AddNumberToObject(paquete, "x", req.value3.x);
+        cJSON_AddNumberToObject(paquete, "y", req.value3.y);
+        cJSON_AddNumberToObject(paquete, "z", req.value3.z);
+        cJSON_AddItemToObject(obj, "value3", paquete);
+    }
+   
+    else if (req.op == 2){ // La operacion es get_value
+        cJSON_AddNumberToObject(obj, "op", OP_GET);
+        cJSON_AddStringToObject(obj, "key", req.key);
+    }
+
+    else if (req.op == 3){ // La operacion es modify_value
+        // Relleno el JSON
+        cJSON_AddNumberToObject(obj, "op", OP_MODIFY);
+        cJSON_AddStringToObject(obj, "key", req.key);
+        cJSON_AddStringToObject(obj, "value1", req.value1);
+        cJSON_AddNumberToObject(obj, "nvalue2", req.N_value2);
+
+        // Meto el array de floats V_value2
+        cJSON *array = cJSON_CreateArray();
+        for (int i = 0; i < req.N_value2; i++){
+            cJSON_AddItemToArray(array, cJSON_CreateNumber(req.V_value2[i]));
+        }
+        cJSON_AddItemToObject(obj, "vvalue2", array);
+
+        // Meto el value3
+        cJSON *paquete = cJSON_CreateObject();
+        cJSON_AddNumberToObject(paquete, "x", req.value3.x);
+        cJSON_AddNumberToObject(paquete, "y", req.value3.y);
+        cJSON_AddNumberToObject(paquete, "z", req.value3.z);
+        cJSON_AddItemToObject(obj, "value3", paquete);
+    }
+
+    else if (req.op == 4){ // La operacion es delete_key
+        cJSON_AddNumberToObject(obj, "op", OP_DELETE);
+        cJSON_AddStringToObject(obj, "key", req.key);
+    }
+
+    else if (req.op == 5){ // La operacon es exist
+        cJSON_AddNumberToObject(obj, "op", OP_EXIST);
+        cJSON_AddStringToObject(obj, "key", req.key);
+    }
+
+    // Paso el JSON a char* 
+    char* request_json = cJSON_PrintUnformatted(obj);
+
+    // Liberamos memoria
+    cJSON_Delete(obj);
+
+    return request_json;
+}
+
+struct respuesta traducir_json_response (char* json_response){
+    return;
+}
+
 
 // Función auxiliar:
 // Envía la petición al servidor, espera la respuesta y la devuelve
 int send_recv(char* request, char* response) {
     
-    // 1. Conectar
+    // 1. Conectarse al servidor
     
+    // 2. Envio la request JSON
 
-    // 2. Enviar y recibir (usamos JSONS)
+    // 3. Recibo la response JSON
 
-
-    // 3. Limpieza
+    // 4. Limpieza
     
     return 0;
 }
@@ -35,7 +121,7 @@ int destroy(void) {
     /*
     * Request:
     * {
-    *     "op": "DESTROY"
+    *     "op": 0
     * }
     * Response:
     * {
@@ -44,22 +130,29 @@ int destroy(void) {
     * }
     */
     struct peticion req;
-    struct respuesta res;
+    char res [4096];
 
-    // 1. Empaquetar la petición
+    // 1. Empaqueto la petición
     req.op = OP_INIT;
 
-    // 2. Enviar y recibir
-    if (send_recv(&req, &res) == -2) return -2;
+    // 2. Creo el JSON para la request
+    char* json_request = crear_json(req);
 
-    return res.resultado;
+    // 3. Envio la request en formato JSON y recibo la response en formato JSON
+    if (send_recv(json_request, res) == -2) return -2;
+
+    free(json_request);
+
+    // 4. Leo el JSON de la response y lo paso a struct response
+
+    return;
 }
 
 int set_value(char *key, char *value1, int N_value2, float *V_value2, struct Paquete value3) {
     /*
     * Request:
     * {
-    *     "op":      "SET",
+    *     "op":      1,
     *     "key":     "<clave>",
     *     "value1":  "<string[256]>",
     *     "nvalue2": <int[1-32]>,
@@ -73,15 +166,13 @@ int set_value(char *key, char *value1, int N_value2, float *V_value2, struct Paq
     * }
     */
 
-
-
     struct peticion req;
-    struct respuesta res;
+    char res [4096];
 
     // 1. Empaquetar la petición
     req.op = OP_SET;
 
-    // Comprobar de los valores de entrada
+    // 2. Comprobar de los valores de entrada
     if (N_value2 < 1 || N_value2 > 32) return -1;
     if (strnlen(key, 256) == 256 || (value1 != NULL && strnlen(value1, 256) == 256)) return -1;
     
@@ -91,17 +182,24 @@ int set_value(char *key, char *value1, int N_value2, float *V_value2, struct Paq
     memcpy(req.V_value2, V_value2, N_value2 * sizeof(float));
     req.value3 = value3;
 
-    // 2. Enviar y recibir
-    if (send_recv(&req, &res) == -2) return -2;
+    // 3. Paso la request a JSON
+    char* json_request = crear_json(req);
 
-    return res.resultado;
+    // 4. Envio la request en formato JSON y recibo la response en formato JSON
+    if (send_recv(json_request, res) == -2) return -2;
+
+    free(json_request);
+
+    // 5. Leo el JSON de la response y lo paso a struct response
+
+    return;
 }
 
 int get_value(char *key, char *value1, int *N_value2, float *V_value2, struct Paquete *value3) {
     /*
     * Request:
     * {
-    *     "op":  "GET",
+    *     "op":  2,
     *     "key": "<clave>"
     * }
     * Response:
@@ -117,24 +215,28 @@ int get_value(char *key, char *value1, int *N_value2, float *V_value2, struct Pa
     * }
     */
 
-
-
-
     // Vital para que no falle si se pasa un NULL
     if (key == NULL) {
         return -1;
     }
     struct peticion req;
-    struct respuesta res;
+    char res [4096];
 
     // 1. Empaquetar la petición
     req.op = OP_GET;
     strcpy(req.key, key);
     
-    // 2. Enviar y recibir
-    if (send_recv(&req, &res) == -2) return -2;
+    // 2. Paso la request a JSON
+    char* json_request = crear_json(req);
+    
+    // 2. Envio la request en formato JSON y recibo la response en formato JSON
+    if (send_recv(json_request, res) == -2) return -2;
 
-    // 3. Desempaquetar la respuesta (si la clave existe)
+    free(json_request);
+    
+    // 3. Paso el JSON de la respones a struct respuesta
+
+    // 4. Desempaquetar la respuesta (si la clave existe)
     if (res.resultado == 0) {
         strcpy(value1, res.value1);
 
@@ -143,7 +245,7 @@ int get_value(char *key, char *value1, int *N_value2, float *V_value2, struct Pa
         *value3 = res.value3;
     }
 
-    // 4. Devolver el resultado de la respuesta
+    // 5. Devolver el resultado de la respuesta
     return res.resultado;
 }
 
@@ -152,7 +254,7 @@ int modify_value(char *key, char *value1, int N_value2, float *V_value2, struct 
     /*
     * Request:
     * {
-    *     "op":      "MODIFY",
+    *     "op":      3,
     *     "key":     "<clave>",
     *     "value1":  "<string[256]>",
     *     "nvalue2": <int[1-32]>,
@@ -166,7 +268,7 @@ int modify_value(char *key, char *value1, int N_value2, float *V_value2, struct 
     * }
     */
     struct peticion req;
-    struct respuesta res;
+    char res [4096];
 
     // 1. Empaquetar la petición
     req.op = OP_MODIFY;
@@ -181,10 +283,16 @@ int modify_value(char *key, char *value1, int N_value2, float *V_value2, struct 
     memcpy(req.V_value2, V_value2, N_value2 * sizeof(float));
     req.value3 = value3;
     
-    // 2. Enviar y recibir
-    if (send_recv(&req, &res) == -2) return -2;
+    // 2. Paso la request a JSON 
+    char* json_request = crear_json(req);
 
-    return res.resultado;
+    // 3. Envio la request en formato JSON y recibo la response en formato JSON
+    if (send_recv(json_request, res) == -2) return -2;
+
+    free(json_request);
+
+    // 4. Paso el JSON de la respones a una struct respuesta
+    return;
 }
 
 int delete_key(char *key) {
@@ -192,7 +300,7 @@ int delete_key(char *key) {
     /*
     * Request:
     * {
-    *     "op":  "DELETE",
+    *     "op":  4,
     *     "key": "<clave>"
     * }
     * Response:
@@ -207,16 +315,22 @@ int delete_key(char *key) {
         return -1;
     }
     struct peticion req;
-    struct respuesta res;
+    char res[4096];
 
     // 1. Empaquetar la petición
     req.op = OP_DELETE;
     strcpy(req.key, key);
 
-    // 2. Enviar y recibir
-    if (send_recv(&req, &res) == -2) return -2;
+    // 2. Paso la request a JSON
+    char* json_request = crear_json(req);
 
-    return res.resultado;
+    // 3.  Envio la request en formato JSON y recibo la response en formato JSON
+    if (send_recv(json_request, res) == -2) return -2;
+
+    free(json_request);
+
+    // 4. Paso la response JSON a struct respuesta
+    return;
 }
 
 int exist(char *key) {
@@ -224,7 +338,7 @@ int exist(char *key) {
     /*
     * Request:
     * {
-    *     "op":  "EXIST",
+    *     "op":  5,
     *     "key": "<clave>"
     * }
     * Response:
@@ -241,14 +355,20 @@ int exist(char *key) {
     }
     
     struct peticion req;
-    struct respuesta res;
+    char res [4096];
 
     // 1. Empaquetar la petición
     req.op = OP_EXIST;
     strcpy(req.key, key);
 
-    // 2. Enviar y recibir
-    if (send_recv(&req, &res) == -2) return -2;
+    // 2. Paso la request a JSON
+    char* json_request = crear_json(req);
 
-    return res.resultado;
+    // 3. Envio la request en formato JSON y recibo la response en formato JSON
+    if (send_recv(json_request, res) == -2) return -2;
+
+    free(json_request);
+    
+    // 4. Paso el JSON de la response a struct respuesta
+    return;
 }
