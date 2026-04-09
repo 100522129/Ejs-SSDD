@@ -1,11 +1,12 @@
-#include <stdio.h>       // sprintf, printf
-#include <stdlib.h>      // getenv, atoi
-#include <string.h>      // strlen, memset, strcmp
-#include <unistd.h>      // close, read, write
-#include <sys/socket.h>  // socket, connect, send, recv
-#include <netinet/in.h>  // struct sockaddr_in
-#include <arpa/inet.h>   // htons, inet_pton
-#include <netdb.h>       // getaddrinfo (para resolver nombres de dominio)
+#include <sys/types.h>
+#include <netdb.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include "claves.h"
 #include "mensajes.h"
 #include "cJSON.h"
@@ -105,7 +106,7 @@ struct respuesta traducir_json_response (char* json_response){ // Falta tratar e
     struct respuesta respuesta_servidor;
     respuesta_servidor.resultado = cJSON_GetObjectItem(obj, "result")->valueint;
 
-    // 2.1 Miro si la operacion es get_value
+    // 2.1 Miro si la operacion es get_value (es la unica que tiene mas campos)
     if (cJSON_GetArraySize(obj)> 1){
         // Relleno value1
         strcpy(respuesta_servidor.value1, cJSON_GetObjectItem(obj, "value1")->valuestring);
@@ -127,23 +128,85 @@ struct respuesta traducir_json_response (char* json_response){ // Falta tratar e
     return respuesta_servidor;
 }
 
-
-// Función auxiliar:
-// Envía la petición al servidor, espera la respuesta y la devuelve
+// Función auxiliar: Envía la petición al servidor, espera la respuesta y la devuelve
 int send_recv(char* request, char* response) {
 
     // 1. Leer IP_TUPLAS y PORT_TUPLAS del entorno
+    char* ip_servidor = getenv("IP_TUPLAS");
+    if (ip_servidor == NULL){
+        perror("Error al leer la IP del servidor");
+        return -2;
+    }
+    char* puerto_servidor = getenv("PORT_TUPLAS");
+    if (puerto_servidor == NULL){
+        perror("Error al leer el puerto del servidor");
+        return -2;
+    }
 
     // 2. Resolver el host con getaddrinfo
+    struct addrinfo *res; // es la salida, getaddrinfo escribe ahi
+    struct addrinfo hints; // es la entrada, para decir el tipo de conexion que queremos (IPv4, TCP)
 
-    // 3. Crear socket y hacer connect
+    // 2.1 Quito la basura que pueda haber al declarar la variable hints
+    memset(&hints, 0, sizeof(hints));
+    
+    // 2.2 Indico la informacion de la conexion
+    hints.ai_family = AF_INET; // Significa IPv4
+    hints.ai_socktype = SOCK_STREAM; // Significa TCP
+
+    // 2.3 LLamo a getaddrinfo (getaddrinfo necesita un puntero al puntero res)
+    if (getaddrinfo(ip_servidor, puerto_servidor, &hints, &res) !=0){
+        perror("Error al usar getaddrinfo");
+        return -2;
+    }
+
+    // 3. Crear socket y hacer connect (ya tengo toda la info en res)
+
+    // 3.1 Para crear el socket necesito el tipo de direccion, tipo de socket y protocolo
+    int sock = socket(res->ai_family, res->ai_socktype, 0);
+    if (sock == -1){
+        perror("Error al crear el socket");
+        freeaddrinfo(res);
+        return -2;
+    }
+
+    // 3.2 Me conecto al servidor (necesito su IP y PUERTO, viene ya todo en ai_addr)
+    if (connect(sock, res->ai_addr, res->ai_addrlen) == -1) {
+        perror("Error al conectar");
+        close(sock);
+        freeaddrinfo(res);
+        return -2;
+    }
 
     // 4. Enviar los 4 Bytes de longitud + el JSON request
 
+    // 4.1 Calculo los bytes de longitud para que el servidor sepa los bytes que tiene que leer del JSON
+    int longitud_request = strlen(request);
+
+    // 4.2 Para que el servidor lo entienda lo tengo que transformar a big-endian (formato de red)
+    uint32_t longitud_request_final = htonl(longitud_request);
+    
+    // 4.3 Envio la longitud de la request
+    send(sock, &longitud_request_final, sizeof(longitud_request_final), 0);
+
+    // 4.4 Envio la request
+    send(sock, request, longitud_request, 0);
+
     // 5. Recibir los 4 Bytes de longitud + el JSON response
 
-    // 6. Cerrar el socket
+    // 5.1 Primero recibo la longitud de la response
+    uint32_t longitud_response;
+    recv(sock, &longitud_response, sizeof(longitud_response), 0);
 
+    // 5.2 Convierto la longitud a formato local
+    int longitud_response_final = ntohl(longitud_response);
+
+    // 5.3 Recibo el JSON
+    recv(sock, response, longitud_response_final, 0);
+
+    // 6. Cerrar el socket
+    close(sock);
+    freeaddrinfo(res);
     return 0;
 }
 
@@ -159,7 +222,10 @@ int destroy(void) {
     char* json_request = crear_json(req);
 
     // 3. Envio la request en formato JSON y recibo la response en formato JSON
-    if (send_recv(json_request, res) == -2) return -2;
+    if (send_recv(json_request, res) == -2){
+        free(json_request);
+        return -2;
+    } 
 
     free(json_request);
 
@@ -191,14 +257,16 @@ int set_value(char *key, char *value1, int N_value2, float *V_value2, struct Paq
     char* json_request = crear_json(req);
 
     // 4. Envio la request en formato JSON y recibo la response en formato JSON
-    if (send_recv(json_request, res) == -2) return -2;
+    if (send_recv(json_request, res) == -2){
+        free(json_request);
+        return -2;
+    } 
 
     free(json_request);
 
     // 5. Leo el JSON de la response y lo paso a struct response
     struct respuesta respuesta_final = traducir_json_response(res);
     return respuesta_final.resultado;
-
 }
 
 int get_value(char *key, char *value1, int *N_value2, float *V_value2, struct Paquete *value3) {
@@ -217,28 +285,31 @@ int get_value(char *key, char *value1, int *N_value2, float *V_value2, struct Pa
     // 2. Paso la request a JSON
     char* json_request = crear_json(req);
     
-    // 2. Envio la request en formato JSON y recibo la response en formato JSON
-    if (send_recv(json_request, res) == -2) return -2;
+    // 3. Envio la request en formato JSON y recibo la response en formato JSON
+    if (send_recv(json_request, res) == -2){
+        free(json_request);
+        return -2;
+    } 
 
     free(json_request);
     
-    // 3. Paso el JSON de la respones a struct respuesta
+    // 4. Paso el JSON de la respones a struct respuesta
     struct respuesta respuesta_final = traducir_json_response(res);
 
-    // 4. Desempaquetar la respuesta (si la clave existe)
+    // 5. Desempaquetar la respuesta (si la clave existe)
     if (respuesta_final.resultado == 0) {
         strcpy(value1, respuesta_final.value1);
-
         *N_value2 = respuesta_final.N_value2;
         memcpy(V_value2, respuesta_final.V_value2, respuesta_final.N_value2 * sizeof(float));
         *value3 = respuesta_final.value3;
     }
 
-    // 5. Devolver el resultado de la respuesta
+    // 6. Devolver el resultado de la respuesta
     return respuesta_final.resultado;
 }
 
 int modify_value(char *key, char *value1, int N_value2, float *V_value2, struct Paquete value3) {
+
     struct peticion req;
     char res [4096];
 
@@ -259,7 +330,10 @@ int modify_value(char *key, char *value1, int N_value2, float *V_value2, struct 
     char* json_request = crear_json(req);
 
     // 3. Envio la request en formato JSON y recibo la response en formato JSON
-    if (send_recv(json_request, res) == -2) return -2;
+    if (send_recv(json_request, res) == -2){
+        free(json_request);
+        return -2;
+    }
 
     free(json_request);
 
@@ -284,8 +358,11 @@ int delete_key(char *key) {
     // 2. Paso la request a JSON
     char* json_request = crear_json(req);
 
-    // 3.  Envio la request en formato JSON y recibo la response en formato JSON
-    if (send_recv(json_request, res) == -2) return -2;
+    // 3. Envio la request en formato JSON y recibo la response en formato JSON
+    if (send_recv(json_request, res) == -2){
+        free(json_request);
+        return -2;
+    } 
 
     free(json_request);
 
@@ -312,7 +389,10 @@ int exist(char *key) {
     char* json_request = crear_json(req);
 
     // 3. Envio la request en formato JSON y recibo la response en formato JSON
-    if (send_recv(json_request, res) == -2) return -2;
+    if (send_recv(json_request, res) == -2){
+        free(json_request);
+        return -2;
+    } 
 
     free(json_request);
     
