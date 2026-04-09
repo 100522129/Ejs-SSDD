@@ -4,7 +4,7 @@
 # =============================================================
 
 N=10
-EXEC="$PWD/build/app_cliente_mq"
+EXEC="$PWD/build/app_cliente_2"
 export LD_LIBRARY_PATH="$PWD/build"
 
 PIDS=()
