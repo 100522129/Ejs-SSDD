@@ -1,0 +1,49 @@
+=========== destroy ===========
+
+{
+    "op": 0
+}
+
+=========== set_value ===========
+
+{
+  "op": 1,
+  "key": "mi_clave",
+  "value1": "hola",
+  "nvalue2": 3,
+  "vvalue2": [1.0, 2.5, 3.7],
+  "value3": {"x": 1, "y": 2, "z": 3}
+}
+
+=========== get_value ===========
+
+{
+  "op": 2,
+  "key": "mi_clave"
+}
+
+=========== modify_value ===========
+
+{
+  "op": 3,
+  "key": "mi_clave",
+  "value1": "nuevo",
+  "nvalue2": 2,
+  "vvalue2": [9.0, 8.0],
+  "value3": {"x": 4, "y": 5, "z": 6}
+}
+
+=========== delete_key ===========
+
+{
+  "op": 4, 
+  "key": "mi_clave"
+}
+
+=========== exist ===========
+
+{
+  "op": 5,
+  "key": "mi_clave"
+}
+

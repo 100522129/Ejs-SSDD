@@ -98,6 +98,9 @@ char* crear_json (struct peticion req){
 }
 
 struct respuesta traducir_json_response (char* json_response){
+    // 1. Parseo el JSON con cJSON
+
+    // 2. Relleno y devuelvo la struct respuesta
     return;
 }
 
@@ -105,30 +108,24 @@ struct respuesta traducir_json_response (char* json_response){
 // Función auxiliar:
 // Envía la petición al servidor, espera la respuesta y la devuelve
 int send_recv(char* request, char* response) {
-    
-    // 1. Conectarse al servidor
-    
-    // 2. Envio la request JSON
 
-    // 3. Recibo la response JSON
+    // 1. Leer IP_TUPLAS y PORT_TUPLAS del entorno
 
-    // 4. Limpieza
-    
+    // 2. Resolver el host con getaddrinfo
+
+    // 3. Crear socket y hacer connect
+
+    // 4. Enviar los 4 Bytes de longitud + el JSON request
+
+    // 5. Recibir los 4 Bytes de longitud + el JSON response
+
+    // 6. Cerrar el socket
+
     return 0;
 }
 
 int destroy(void) {
-    /*
-    * Request:
-    * {
-    *     "op": 0
-    * }
-    * Response:
-    * {
-    *     "result": 0    (ok)
-    *     "result": -1   (error)
-    * }
-    */
+
     struct peticion req;
     char res [4096];
 
@@ -149,22 +146,6 @@ int destroy(void) {
 }
 
 int set_value(char *key, char *value1, int N_value2, float *V_value2, struct Paquete value3) {
-    /*
-    * Request:
-    * {
-    *     "op":      1,
-    *     "key":     "<clave>",
-    *     "value1":  "<string[256]>",
-    *     "nvalue2": <int[1-32]>,
-    *     "vvalue2": [<float>, <float>, ...],
-    *     "value3":  { <campos de Paquete> }
-    * }
-    * Response:
-    * {
-    *     "result": 0    (ok)
-    *     "result": -1   (clave ya existe o N_value2 fuera de rango)
-    * }
-    */
 
     struct peticion req;
     char res [4096];
@@ -196,24 +177,6 @@ int set_value(char *key, char *value1, int N_value2, float *V_value2, struct Paq
 }
 
 int get_value(char *key, char *value1, int *N_value2, float *V_value2, struct Paquete *value3) {
-    /*
-    * Request:
-    * {
-    *     "op":  2,
-    *     "key": "<clave>"
-    * }
-    * Response:
-    * {
-    *     "result":  0,
-    *     "value1":  "<string[256]>",
-    *     "nvalue2": <int>,
-    *     "vvalue2": [<float>, <float>, ...],
-    *     "value3":  { <campos de Paquete> }
-    * }
-    * {
-    *     "result": -1   (clave no existe)
-    * }
-    */
 
     // Vital para que no falle si se pasa un NULL
     if (key == NULL) {
@@ -250,23 +213,6 @@ int get_value(char *key, char *value1, int *N_value2, float *V_value2, struct Pa
 }
 
 int modify_value(char *key, char *value1, int N_value2, float *V_value2, struct Paquete value3) {
-
-    /*
-    * Request:
-    * {
-    *     "op":      3,
-    *     "key":     "<clave>",
-    *     "value1":  "<string[256]>",
-    *     "nvalue2": <int[1-32]>,
-    *     "vvalue2": [<float>, <float>, ...],
-    *     "value3":  { <campos de Paquete> }
-    * }
-    * Response:
-    * {
-    *     "result": 0    (ok)
-    *     "result": -1   (clave no existe o N_value2 fuera de rango)
-    * }
-    */
     struct peticion req;
     char res [4096];
 
@@ -297,19 +243,6 @@ int modify_value(char *key, char *value1, int N_value2, float *V_value2, struct 
 
 int delete_key(char *key) {
 
-    /*
-    * Request:
-    * {
-    *     "op":  4,
-    *     "key": "<clave>"
-    * }
-    * Response:
-    * {
-    *     "result": 0    (ok)
-    *     "result": -1   (clave no existe)
-    * }
-    */
-
     // Vital para que no falle si se pasa un NULL
     if (key == NULL) {
         return -1;
@@ -334,20 +267,6 @@ int delete_key(char *key) {
 }
 
 int exist(char *key) {
-
-    /*
-    * Request:
-    * {
-    *     "op":  5,
-    *     "key": "<clave>"
-    * }
-    * Response:
-    * {
-    *     "result": 1    (existe)
-    *     "result": 0    (no existe)
-    *     "result": -1   (error de comunicaciones)
-    * }
-    */
 
     // Vital para que no falle si se pasa un NULL
     if (key == NULL) {
