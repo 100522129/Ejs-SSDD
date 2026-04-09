@@ -15,7 +15,7 @@
     - Ya no se envian structs, ahora se envian jsons
 */
 
-char* crear_json (struct peticion req){
+char* crear_json (struct peticion req){ // Falta tratar errores y refactorizar
     // Comprobacion basica
     if (req.op < 0 || req.op > 5){
         return NULL;
@@ -97,11 +97,34 @@ char* crear_json (struct peticion req){
     return request_json;
 }
 
-struct respuesta traducir_json_response (char* json_response){
+struct respuesta traducir_json_response (char* json_response){ // Falta tratar errores
     // 1. Parseo el JSON con cJSON
+    cJSON *obj = cJSON_Parse(json_response);
 
-    // 2. Relleno y devuelvo la struct respuesta
-    return;
+    // 2. Relleno los campos de la respuesta
+    struct respuesta respuesta_servidor;
+    respuesta_servidor.resultado = cJSON_GetObjectItem(obj, "result")->valueint;
+
+    // 2.1 Miro si la operacion es get_value
+    if (cJSON_GetArraySize(obj)> 1){
+        // Relleno value1
+        strcpy(respuesta_servidor.value1, cJSON_GetObjectItem(obj, "value1")->valuestring);
+        // Relleno nvalue2
+        respuesta_servidor.N_value2 = cJSON_GetObjectItem(obj, "nvalue2")->valueint;
+        // Relleno vvalue2 (array de floats)
+        cJSON *array = cJSON_GetObjectItem(obj, "vvalue2");
+        for (int i = 0; i < respuesta_servidor.N_value2; i++){
+            respuesta_servidor.V_value2[i] = (float)cJSON_GetArrayItem(array, i)->valuedouble;
+        }
+        // Relleno value3 (struct paquete)
+        cJSON *value3 = cJSON_GetObjectItem(obj, "value3");
+        respuesta_servidor.value3.x = cJSON_GetObjectItem(value3, "x")->valueint;
+        respuesta_servidor.value3.y = cJSON_GetObjectItem(value3, "y")->valueint;
+        respuesta_servidor.value3.z = cJSON_GetObjectItem(value3, "z")->valueint;
+    }
+    // 3. Devuelvo la struct respuesta
+    cJSON_Delete(obj);
+    return respuesta_servidor;
 }
 
 
@@ -141,8 +164,9 @@ int destroy(void) {
     free(json_request);
 
     // 4. Leo el JSON de la response y lo paso a struct response
+    struct respuesta respuesta_final = traducir_json_response(res);
 
-    return;
+    return respuesta_final.resultado;
 }
 
 int set_value(char *key, char *value1, int N_value2, float *V_value2, struct Paquete value3) {
@@ -172,8 +196,9 @@ int set_value(char *key, char *value1, int N_value2, float *V_value2, struct Paq
     free(json_request);
 
     // 5. Leo el JSON de la response y lo paso a struct response
+    struct respuesta respuesta_final = traducir_json_response(res);
+    return respuesta_final.resultado;
 
-    return;
 }
 
 int get_value(char *key, char *value1, int *N_value2, float *V_value2, struct Paquete *value3) {
@@ -198,18 +223,19 @@ int get_value(char *key, char *value1, int *N_value2, float *V_value2, struct Pa
     free(json_request);
     
     // 3. Paso el JSON de la respones a struct respuesta
+    struct respuesta respuesta_final = traducir_json_response(res);
 
     // 4. Desempaquetar la respuesta (si la clave existe)
-    if (res.resultado == 0) {
-        strcpy(value1, res.value1);
+    if (respuesta_final.resultado == 0) {
+        strcpy(value1, respuesta_final.value1);
 
-        *N_value2 = res.N_value2;
-        memcpy(V_value2, res.V_value2, res.N_value2 * sizeof(float));
-        *value3 = res.value3;
+        *N_value2 = respuesta_final.N_value2;
+        memcpy(V_value2, respuesta_final.V_value2, respuesta_final.N_value2 * sizeof(float));
+        *value3 = respuesta_final.value3;
     }
 
     // 5. Devolver el resultado de la respuesta
-    return res.resultado;
+    return respuesta_final.resultado;
 }
 
 int modify_value(char *key, char *value1, int N_value2, float *V_value2, struct Paquete value3) {
@@ -238,7 +264,8 @@ int modify_value(char *key, char *value1, int N_value2, float *V_value2, struct 
     free(json_request);
 
     // 4. Paso el JSON de la respones a una struct respuesta
-    return;
+    struct respuesta respuesta_final = traducir_json_response(res);
+    return respuesta_final.resultado;
 }
 
 int delete_key(char *key) {
@@ -263,7 +290,8 @@ int delete_key(char *key) {
     free(json_request);
 
     // 4. Paso la response JSON a struct respuesta
-    return;
+    struct respuesta respuesta_final = traducir_json_response(res);
+    return respuesta_final.resultado;
 }
 
 int exist(char *key) {
@@ -289,5 +317,6 @@ int exist(char *key) {
     free(json_request);
     
     // 4. Paso el JSON de la response a struct respuesta
-    return;
+    struct respuesta respuesta_final = traducir_json_response(res);
+    return respuesta_final.resultado;
 }
