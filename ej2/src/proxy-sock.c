@@ -10,6 +10,7 @@
 #include "claves.h"
 #include "mensajes.h"
 #include "cJSON.h"
+#include "sock_utils.h"
 
 #define MAX_RESPONSE_SIZE 4096
 
@@ -193,14 +194,14 @@ int send_recv(char* request, char* response) {
     uint32_t longitud_request_final = htonl(longitud_request);
     
     // 4.3 Envio la longitud de la request
-    if (send(sock, &longitud_request_final, sizeof(longitud_request_final), 0) == -1) {
+    if (sendMessage(sock, (char*)&longitud_request_final, sizeof(longitud_request_final)) == -1) {
         perror("Error al enviar la longitud de la request");
         close(sock);
         return -2;
     }
 
     // 4.4 Envio la request
-    if (send(sock, request, longitud_request, 0) == -1) {
+    if (sendMessage(sock, request, longitud_request) == -1) {
         perror("Error al enviar la request");
         close(sock);
         return -2;
@@ -210,7 +211,7 @@ int send_recv(char* request, char* response) {
 
     // 5.1 Primero recibo la longitud de la response
     uint32_t longitud_response;
-    if (recv(sock, &longitud_response, sizeof(longitud_response), 0) == -1) {
+    if (recvMessage(sock, (char*)&longitud_response, sizeof(longitud_response)) == -1) {
         perror("Error al recibir la longitud de la response");
         close(sock);
         return -2;
@@ -227,7 +228,7 @@ int send_recv(char* request, char* response) {
     }
 
     // 5.4 Recibo el JSON
-    if (recv(sock, response, longitud_response_final, 0) == -1) {
+    if (recvMessage(sock, response, longitud_response_final) == -1) {
         perror("Error al recibir la response");
         close(sock);
         return -2;

@@ -19,14 +19,14 @@ build/libclaves.so: src/claves.c include/claves.h
 	$(CC) $(FLAGS_LIB) -Iinclude -o build/libclaves.so src/claves.c -lpthread
 
 # Parte B (libproxyclaves.so) → biblioteca del lado cliente (sockets TCP + JSON)
-build/libproxyclaves.so: src/proxy-sock.c src/cJSON.c include/cJSON.h include/mensajes.h include/claves.h
-	$(CC) $(FLAGS_LIB) -Iinclude -o build/libproxyclaves.so src/proxy-sock.c src/cJSON.c
+build/libproxyclaves.so: src/proxy-sock.c src/cJSON.c src/sock_utils.c include/cJSON.h include/mensajes.h include/claves.h
+	$(CC) $(FLAGS_LIB) -Iinclude -o build/libproxyclaves.so src/proxy-sock.c src/cJSON.c src/sock_utils.c
 
 
 # ── EJECUTABLES ──────────────────────────────
 # Servidor TCP concurrente (usa libclaves.so en tiempo de enlace)
-build/servidor_sock: src/servidor-sock.c src/cJSON.c build/libclaves.so
-	$(CC) $(CFLAGS) -Iinclude -o build/servidor_sock src/servidor-sock.c src/cJSON.c -Lbuild -lclaves -lpthread
+build/servidor_sock: src/servidor-sock.c src/cJSON.c src/sock_utils.c build/libclaves.so
+	$(CC) $(CFLAGS) -Iinclude -o build/servidor_sock src/servidor-sock.c src/cJSON.c src/sock_utils.c -Lbuild -lclaves -lpthread
 
 # Cliente Parte 1 → batería de pruebas funcionales (app-cliente-1.c)
 build/app_cliente_1: test/app-cliente-1.c build/libproxyclaves.so
