@@ -38,6 +38,7 @@ make run_servidor PUERTO=9090
 | `make run_cliente_1` | Batería de pruebas funcionales (set, get, modify, delete, exist) |
 | `make run_cliente_2` | Prueba de estrés con un único cliente |
 | `make run_concurrente` | 10 clientes concurrentes ejecutando `app_cliente_2` en paralelo |
+| `make run_test_red` | Pruebas de error de red con un simple archivo: `app_cliente_3` (**no necesita servidor corriendo**) |
 
 Para apuntar a un servidor remoto:
 

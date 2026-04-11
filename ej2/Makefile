@@ -36,6 +36,10 @@ build/app_cliente_1: test/app-cliente-1.c build/libproxyclaves.so
 build/app_cliente_2: test/app-cliente-2.c build/libproxyclaves.so
 	$(CC) $(CFLAGS) -Iinclude -o build/app_cliente_2 test/app-cliente-2.c -Lbuild -lproxyclaves
 
+# Test sobre la conexión en la red
+build/app_cliente_3: test/app-cliente-3.c build/libproxyclaves.so
+	$(CC) $(CFLAGS) -Iinclude -o build/app_cliente_3 test/app-cliente-3.c -Lbuild -lproxyclaves
+
 # ── LIMPIEZA ─────────────────────────────────
 clean:
 	rm -rf build
@@ -58,4 +62,8 @@ run_cliente_2: build/app_cliente_2
 run_concurrente: build/app_cliente_2
 	LD_LIBRARY_PATH=./build IP_TUPLAS=$(IP) PORT_TUPLAS=$(PUERTO) bash test/test_concurrencia.sh
 
-.PHONY: all clean run_servidor run_cliente_1 run_cliente_2 run_concurrente
+# Pruebas con las variables de entorno (no necesita al servidor corriendo)
+run_test_red: build/app_cliente_3
+	bash test/test_red.sh
+
+.PHONY: all clean run_servidor run_cliente_1 run_cliente_2 run_concurrente run_test_red

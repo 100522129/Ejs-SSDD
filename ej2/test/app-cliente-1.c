@@ -371,21 +371,17 @@ void test_null_params() {
     float v2_out[32];                                                                       
     struct Paquete p_out;                                                                   
                                                                                             
-    // 8.1 get_value con key NULL — validado en proxy-sock.c, debe devolver -1              
+    // 8.1 get_value con key NULL            
     int err = get_value(NULL, v1_out, &n_out, v2_out, &p_out);                              
     resultado(err == -1, "8.1 get_value con key NULL devuelve -1");                         
                                                                                             
-    // 8.2 delete_key con key NULL — validado en proxy-sock.c, debe devolver -1             
+    // 8.2 delete_key con key NULL           
     err = delete_key(NULL);                                                                 
     resultado(err == -1, "8.2 delete_key con key NULL devuelve -1");                        
                                                                                             
-    // 8.3 exist con key NULL — validado en proxy-sock.c, debe devolver -1                  
+    // 8.3 exist con key NULL              
     err = exist(NULL);                                                                      
-    resultado(err == -1, "8.3 exist con key NULL devuelve -1");                             
-                                                                                            
-    // NOTA: set_value(NULL, ...) y modify_value(NULL, ...) NO están validados              
-    // en proxy-sock.c (invocan strnlen(NULL) → comportamiento indefinido).                 
-    // Se omiten deliberadamente para no crashear el proceso de pruebas.                    
+    resultado(err == -1, "8.3 exist con key NULL devuelve -1");                                     
                                                                                             
     destroy();                                                                              
 }                                                                                           
@@ -402,7 +398,7 @@ void test_limites_strings() {
     p.x = 0; p.y = 0; p.z = 0;                                                              
     float v[] = {1.0f};                                                                     
                                                                                             
-    // 9.1 N_value2 = -1 (negativo, fuera de rango) debe devolver -1                        
+    // 9.1 N_value2 = -1 (negativo, fuera de rango)                      
     int err = set_value("k_neg", "val", -1, v, p);                                          
     resultado(err == -1, "9.1 set_value con N_value2 = -1 rechazado");                      
                                                                                             
@@ -434,7 +430,7 @@ void test_limites_strings() {
     err = set_value("k_val256", val256, 1, v, p);                                           
     resultado(err == -1, "9.5 value1 de 256 chars rechazado");                              
                                                                                             
-    // 9.6 modify_value con N_value2 negativo debe devolver -1                              
+    // 9.6 modify_value con N_value2 negativo                         
     float v2[] = {9.9f};                                                                    
     err = set_value("k_mod", "original", 1, v2, p);                                         
     err = modify_value("k_mod", "nuevo", -5, v2, p);                                        
@@ -447,11 +443,30 @@ void test_limites_strings() {
 // MAIN
 // =============================================================================
 int main() {
+    printf("============================================\n");
+    printf("   BATERIA DE PRUEBAS - app-cliente.c\n");
+    printf("============================================\n");
+
+    // Ejecutamos todas las suites de pruebas
+    test_set_value();
+    test_exist();
+    test_get_value();
+    test_modify_value();
     test_delete_key();
     test_destroy();
     test_flujo_completo();
     test_null_params();                                                                     
     test_limites_strings();                                                                
+    
     // Mostramos el resumen final de resultados
     printf("\n============================================\n");
+    printf("  RESULTADO: %d / %d pruebas pasadas\n", passed, total);
+    printf("============================================\n");
+
+    // Devolvemos 0 si todas las pruebas han pasado, -1 en caso contrario
+    if (passed == total) {
+        return 0;
+    } else {
+        return -1;
+    }
 }
