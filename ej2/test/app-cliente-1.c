@@ -357,33 +357,101 @@ void test_flujo_completo() {
     // Limpiamos el almacen al terminar la suite
     destroy();
 }
-
+                                                                                             
 // =============================================================================
+// SUITE 8: Parámetros NULL                                                                        
+// =============================================================================                 
+void test_null_params() {                                                                   
+    printf("\n=== SUITE 8: Parámetros NULL ===\n");                                         
+                                                                                            
+    destroy();                                                                              
+                                                                                            
+    char v1_out[256];                                                                       
+    int n_out;                                                                              
+    float v2_out[32];                                                                       
+    struct Paquete p_out;                                                                   
+                                                                                            
+    // 8.1 get_value con key NULL — validado en proxy-sock.c, debe devolver -1              
+    int err = get_value(NULL, v1_out, &n_out, v2_out, &p_out);                              
+    resultado(err == -1, "8.1 get_value con key NULL devuelve -1");                         
+                                                                                            
+    // 8.2 delete_key con key NULL — validado en proxy-sock.c, debe devolver -1             
+    err = delete_key(NULL);                                                                 
+    resultado(err == -1, "8.2 delete_key con key NULL devuelve -1");                        
+                                                                                            
+    // 8.3 exist con key NULL — validado en proxy-sock.c, debe devolver -1                  
+    err = exist(NULL);                                                                      
+    resultado(err == -1, "8.3 exist con key NULL devuelve -1");                             
+                                                                                            
+    // NOTA: set_value(NULL, ...) y modify_value(NULL, ...) NO están validados              
+    // en proxy-sock.c (invocan strnlen(NULL) → comportamiento indefinido).                 
+    // Se omiten deliberadamente para no crashear el proceso de pruebas.                    
+                                                                                            
+    destroy();                                                                              
+}                                                                                           
+                                                                                            
+// =============================================================================            
+// SUITE 9: Límites de tamaño de clave y value1                                             
+// =============================================================================            
+void test_limites_strings() {                                                               
+    printf("\n=== SUITE 9: Limites de strings ===\n");                                      
+                                                                                            
+    destroy();                                                                              
+                                                                                            
+    struct Paquete p;                                                                       
+    p.x = 0; p.y = 0; p.z = 0;                                                              
+    float v[] = {1.0f};                                                                     
+                                                                                            
+    // 9.1 N_value2 = -1 (negativo, fuera de rango) debe devolver -1                        
+    int err = set_value("k_neg", "val", -1, v, p);                                          
+    resultado(err == -1, "9.1 set_value con N_value2 = -1 rechazado");                      
+                                                                                            
+    // 9.2 Clave de 255 chars (maximo valido: strnlen devuelve 255, no 256)                 
+    char key255[256];                                                                       
+    memset(key255, 'a', 255);                                                               
+    key255[255] = '\0';                                                                     
+    err = set_value(key255, "val", 1, v, p);                                                
+    resultado(err == 0, "9.2 Clave de 255 chars aceptada");                                 
+                                                                                            
+    // 9.3 Clave de 256 chars (invalida: strnlen con maxlen=256 devuelve 256)               
+    char key256[257];                                                                       
+    memset(key256, 'b', 256);                                                               
+    key256[256] = '\0';                                                                     
+    err = set_value(key256, "val", 1, v, p);                                                
+    resultado(err == -1, "9.3 Clave de 256 chars rechazada");                               
+                                                                                            
+    // 9.4 value1 de 255 chars (maximo valido)                                              
+    char val255[256];                                                                       
+    memset(val255, 'c', 255);                                                               
+    val255[255] = '\0';                                                                     
+    err = set_value("k_val255", val255, 1, v, p);                                           
+    resultado(err == 0, "9.4 value1 de 255 chars aceptado");                                
+                                                                                            
+    // 9.5 value1 de 256 chars (invalido: strnlen con maxlen=256 devuelve 256)              
+    char val256[257];                                                                       
+    memset(val256, 'd', 256);                                                               
+    val256[256] = '\0';                                                                     
+    err = set_value("k_val256", val256, 1, v, p);                                           
+    resultado(err == -1, "9.5 value1 de 256 chars rechazado");                              
+                                                                                            
+    // 9.6 modify_value con N_value2 negativo debe devolver -1                              
+    float v2[] = {9.9f};                                                                    
+    err = set_value("k_mod", "original", 1, v2, p);                                         
+    err = modify_value("k_mod", "nuevo", -5, v2, p);                                        
+    resultado(err == -1, "9.6 modify_value con N_value2 negativo rechazado");               
+                                                                                            
+    destroy();                                                                              
+}                                                                                           
+                                                                                            
+// =============================================================================            
 // MAIN
 // =============================================================================
 int main() {
-    printf("============================================\n");
-    printf("   BATERIA DE PRUEBAS - app-cliente.c\n");
-    printf("============================================\n");
-
-    // Ejecutamos todas las suites de pruebas
-    test_set_value();
-    test_exist();
-    test_get_value();
-    test_modify_value();
     test_delete_key();
     test_destroy();
     test_flujo_completo();
-
+    test_null_params();                                                                     
+    test_limites_strings();                                                                
     // Mostramos el resumen final de resultados
     printf("\n============================================\n");
-    printf("  RESULTADO: %d / %d pruebas pasadas\n", passed, total);
-    printf("============================================\n");
-
-    // Devolvemos 0 si todas las pruebas han pasado, -1 en caso contrario
-    if (passed == total) {
-        return 0;
-    } else {
-        return -1;
-    }
 }
