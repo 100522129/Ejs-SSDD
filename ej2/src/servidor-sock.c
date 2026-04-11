@@ -12,6 +12,9 @@
 #include "cJSON.h"
 #include "sock_utils.h"
 
+#define MAX_STRING 255 // Tamaño máximo de string a recibir por `strncpy`
+#define MAX_QUEUE 32 // Tamaño máximo de cola en el socket
+
 
 // =============================================
 // Parsear la petición JSON -> struct peticion
@@ -43,8 +46,8 @@ struct peticion parsear_json_request(const char *json_str) {
         cJSON *vvalue2 = cJSON_GetObjectItem(obj, "vvalue2");
         cJSON *value3  = cJSON_GetObjectItem(obj, "value3");
 
-        if (key) strncpy(req.key, key->valuestring, 255);
-        if (value1) strncpy(req.value1, value1->valuestring, 255);
+        if (key) strncpy(req.key, key->valuestring, MAX_STRING);
+        if (value1) strncpy(req.value1, value1->valuestring, MAX_STRING);
         if (nvalue2) req.N_value2 = nvalue2->valueint;
 
         if (vvalue2 && cJSON_IsArray(vvalue2)) {
@@ -66,7 +69,7 @@ struct peticion parsear_json_request(const char *json_str) {
 
     else if (req.op == OP_GET || req.op == OP_DELETE || req.op == OP_EXIST) {
         cJSON *key = cJSON_GetObjectItem(obj, "key");
-        if (key) strncpy(req.key, key->valuestring, 255);
+        if (key) strncpy(req.key, key->valuestring, MAX_STRING);
     }
 
     cJSON_Delete(obj);
@@ -249,7 +252,7 @@ int main(int argc, char *argv[]) {
     }
 
     // 4. Poner el socket en modo escucha
-    if (listen(sock_servidor, 32) == -1) {
+    if (listen(sock_servidor, MAX_QUEUE) == -1) {
         perror("[SERVIDOR] Error en listen");
         close(sock_servidor);
         return -1;
