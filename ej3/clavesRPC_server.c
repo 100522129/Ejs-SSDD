@@ -5,77 +5,79 @@
  */
 
 #include "clavesRPC.h"
+#include "claves.h"
 
 bool_t
 destroy_rpc_1_svc(int *result, struct svc_req *rqstp)
 {
-	bool_t retval;
-
-	/*
-	 * insert server code here
-	 */
-
-	return retval;
+	*result = destroy(); // Resultado que recibe el cliente
+	return TRUE; // Le dice a RPC, ¿he podido preparar la respuesta para enviarla? -> TRUE
 }
 
 bool_t
 set_rpc_1_svc(SetModArgs arg1, int *result,  struct svc_req *rqstp)
 {
-	bool_t retval;
+	struct Paquete p;
+	p.x = arg1.value3.x;
+	p.y = arg1.value3.y;
+	p.z = arg1.value3.z;
 
-	/*
-	 * insert server code here
-	 */
-
-	return retval;
+	// arg1.V_value2.V_value2_val para pasar el puntero al array, ya que set_value espera un float* no una struct XDR
+	*result = set_value(arg1.key, arg1.value1, arg1.N_value2, arg1.V_value2.V_value2_val, p);
+	return TRUE;
 }
 
 bool_t
 get_rpc_1_svc(char *arg1, GetResult *result,  struct svc_req *rqstp)
 {
-	bool_t retval;
+	static float buf[32]; // static, sobrevive al return (si no desaparecería) !!!!!! Ver si lo cambio a malloc
+	static char v1[256];
 
-	/*
-	 * insert server code here
-	 */
+	int n;
+	struct Paquete p;
 
-	return retval;
+	int ret = get_value(arg1, v1, &n, buf, &p);
+
+	result->resultado = ret;
+
+	if (ret == 0) {		// Solo rellenar si la clave existe
+		result->value1 	  = v1;
+		result->N_value2  = n;
+		result->V_value2.V_value2_val = buf;
+		result->V_value2.V_value2_len = n;
+		result->value3.x  = p.x;
+		result->value3.y  = p.y;
+		result->value3.z  = p.z;
+	}
+
+	return TRUE;
 }
 
 bool_t
 modify_rpc_1_svc(SetModArgs arg1, int *result,  struct svc_req *rqstp)
 {
-	bool_t retval;
+	struct Paquete p;
+	p.x = arg1.value3.x;
+	p.y = arg1.value3.y;
+	p.z = arg1.value3.z;
 
-	/*
-	 * insert server code here
-	 */
-
-	return retval;
+	// arg1.V_value2.V_value2_val para pasar el puntero al array, ya que set_value espera un float* no una struct XDR
+	*result = modify_value(arg1.key, arg1.value1, arg1.N_value2, arg1.V_value2.V_value2_val, p);
+	return TRUE;
 }
 
 bool_t
 delete_rpc_1_svc(char *arg1, int *result,  struct svc_req *rqstp)
 {
-	bool_t retval;
-
-	/*
-	 * insert server code here
-	 */
-
-	return retval;
+	*result = delete_key(arg1);
+	return TRUE;
 }
 
 bool_t
 exist_rpc_1_svc(char *arg1, int *result,  struct svc_req *rqstp)
 {
-	bool_t retval;
-
-	/*
-	 * insert server code here
-	 */
-
-	return retval;
+	*result = exist(arg1);
+	return TRUE;
 }
 
 int
