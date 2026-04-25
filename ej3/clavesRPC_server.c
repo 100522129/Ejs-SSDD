@@ -6,7 +6,7 @@
 
 #include "clavesRPC.h"
 #include "claves.h"
-
+#include <string.h>
 bool_t
 destroy_rpc_1_svc(int *result, struct svc_req *rqstp)
 {
@@ -41,7 +41,7 @@ get_rpc_1_svc(char *arg1, GetResult *result,  struct svc_req *rqstp)
 	result->resultado = ret;
 
 	if (ret == 0) {		// Solo rellenar si la clave existe
-		result->value1 	  = v1;
+		result->value1 	  = strdup(v1);
 		result->N_value2  = n;
 		result->V_value2.V_value2_val = buf;
 		result->V_value2.V_value2_len = n;
@@ -83,11 +83,8 @@ exist_rpc_1_svc(char *arg1, int *result,  struct svc_req *rqstp)
 int
 claves_prog_1_freeresult (SVCXPRT *transp, xdrproc_t xdr_result, caddr_t result)
 {
-	xdr_free (xdr_result, result);
-
-	/*
-	 * Insert additional freeing code here, if needed
-	 */
-
+	(void)transp;
+	(void)xdr_result;
+	(void)result;
 	return 1;
 }
