@@ -83,8 +83,5 @@ exist_rpc_1_svc(char *arg1, int *result,  struct svc_req *rqstp)
 int
 claves_prog_1_freeresult (SVCXPRT *transp, xdrproc_t xdr_result, caddr_t result)
 {
-	(void)transp;
-	(void)xdr_result;
-	(void)result;
 	return 1;
 }
